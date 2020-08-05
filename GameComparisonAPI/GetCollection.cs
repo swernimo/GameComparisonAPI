@@ -38,7 +38,12 @@ namespace GameComparisonAPI
 
             foreach(var el in doc.Elements().Nodes())
             {
-                collection.Add(CollectionItem.ParseItem((XElement)el));
+                var item = CollectionItem.ParseItem((XElement)el);
+                if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                {
+                    item.ImageData = await client.GetByteArrayAsync(item.ImageUrl);
+                }
+                collection.Add(item);
             }
 
             return new OkObjectResult(collection);
