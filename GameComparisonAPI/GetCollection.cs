@@ -27,7 +27,7 @@ namespace GameComparisonAPI
             ILogger log)
         {
             log.LogInformation($"Trying to get collection for {username}");
-            var collection = new List<CollectionItem>();
+            var collection = new List<Game>();
 
             Policy.HandleResult<HttpResponseMessage>(r => r.StatusCode == HttpStatusCode.OK).RetryForever();
 
@@ -38,11 +38,7 @@ namespace GameComparisonAPI
 
             foreach(var el in doc.Elements().Nodes())
             {
-                var item = CollectionItem.ParseItem((XElement)el);
-                //if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-                //{
-                //    item.ImageData = await client.GetByteArrayAsync(item.ImageUrl);
-                //}
+                var item = Game.ParseItem((XElement)el);
                 collection.Add(item);
             }
 

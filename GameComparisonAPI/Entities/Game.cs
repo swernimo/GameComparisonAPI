@@ -2,7 +2,7 @@
 
 namespace GameComparisonAPI.Entities
 {
-    public class CollectionItem
+    public class Game
     {
         public string ObjectType { get; set; }
         public int Id { get; set; }
@@ -15,9 +15,9 @@ namespace GameComparisonAPI.Entities
         public int NumberPlays { get; set; }
         public byte[] ImageData { get; set; }
 
-        public static CollectionItem ParseItem (XElement el)
+        public static Game ParseItem (XElement el)
         {
-            var item = new CollectionItem
+            var item = new Game
             {
                 ObjectType = el.Attribute("objecttype").Value,
                 Id = int.Parse(el.Attribute("objectid").Value),
