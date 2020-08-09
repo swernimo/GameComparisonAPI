@@ -13,7 +13,7 @@ namespace GameComparisonAPI.Entities
         public string ThumbnailUrl { get; set; }
         public bool Owned { get; set; }
         public int NumberPlays { get; set; }
-        public byte[] ImageData { get; set; }
+        public Statistics Statistics { get; set; }
 
         public static Game ParseItem (XElement el)
         {

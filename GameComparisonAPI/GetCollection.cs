@@ -39,6 +39,12 @@ namespace GameComparisonAPI
             foreach(var el in doc.Elements().Nodes())
             {
                 var item = Game.ParseItem((XElement)el);
+                var statsResponse = await client.GetAsync($"https://gamecomparison.azurewebsites.net/api/GetGameStatistics/{item.Id}?code=rT/jCOHWPKD1H9EUfAsFjbR/XrVxPvqpqB9uRu17hw7RN7fptWVF3Q==");
+                var stats = await statsResponse.Content.ReadAsAsync<Statistics>();
+                if (stats != null)
+                {
+                    item.Statistics = stats;
+                }
                 collection.Add(item);
             }
 
