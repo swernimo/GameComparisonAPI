@@ -6,7 +6,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
-using System;
+using GameComparisonAPI.Entities;
 
 namespace GameComparisonAPI
 {
@@ -18,7 +18,7 @@ namespace GameComparisonAPI
             ILogger log)
         {
             log.LogInformation($"Searching for barcode: {code}");
-            var infoList = new List<(int Id, string Title)>();
+            var infoList = new List<SearchResults>();
 
             using (var connection = new SqlConnection("Server=tcp:gamecomparison.database.windows.net,1433;Initial Catalog=gamecomparison;Persist Security Info=False;User ID=swernimo;Password=xPh7de6g;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"))
             {
@@ -31,7 +31,11 @@ namespace GameComparisonAPI
                     {
                         var id = int.Parse(result["Id"].ToString());
                         var title = result["Title"].ToString();
-                        infoList.Add((id, title));
+                        infoList.Add(new SearchResults
+                        {
+                            Id = id,
+                            Title = title
+                        });
                     }
 
                 }
