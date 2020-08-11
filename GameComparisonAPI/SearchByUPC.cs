@@ -23,7 +23,7 @@ namespace GameComparisonAPI
             using (var connection = new SqlConnection("Server=tcp:gamecomparison.database.windows.net,1433;Initial Catalog=gamecomparison;Persist Security Info=False;User ID=swernimo;Password=xPh7de6g;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"))
             {
                 connection.Open();
-                using (var command = new SqlCommand("select Id, Title from Game where barcode = @barcode", connection))
+                using (var command = new SqlCommand("select Id, Title, imageUrl from Game where barcode = @barcode", connection))
                 {
                     command.Parameters.Add(new SqlParameter("barcode", code));
                     var result = command.ExecuteReader();
@@ -31,10 +31,12 @@ namespace GameComparisonAPI
                     {
                         var id = int.Parse(result["Id"].ToString());
                         var title = result["Title"].ToString();
+                        var imageUrl = result["imageUrl"].ToString();
                         infoList.Add(new SearchResults
                         {
                             Id = id,
-                            Title = title
+                            Title = title,
+                           ImageURL = imageUrl
                         });
                     }
 
