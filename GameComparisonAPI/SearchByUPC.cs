@@ -20,7 +20,7 @@ namespace GameComparisonAPI
             log.LogInformation($"Searching for barcode: {code}");
             var infoList = new List<SearchResults>();
 
-            using (var connection = new SqlConnection("Server=tcp:gamecomparison.database.windows.net,1433;Initial Catalog=gamecomparison;Persist Security Info=False;User ID=swernimo;Password=xPh7de6g;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"))
+            using (var connection = new SqlConnection(""))
             {
                 connection.Open();
                 using (var command = new SqlCommand("select Id, Title, imageUrl from Game where barcode = @barcode", connection))
