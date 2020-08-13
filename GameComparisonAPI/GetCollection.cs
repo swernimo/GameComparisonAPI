@@ -32,7 +32,7 @@ namespace GameComparisonAPI
 
             var collection = new List<Game>();
 
-            var response = await client.GetAsync($"https://www.boardgamegeek.com/xmlapi2/collection/?username={username}&subtype=boardgame");
+            var response = await client.GetAsync($"{_config["BGGBaseUrl"]}/collection/?username={username}&subtype=boardgame");
 
             var str = await response.Content.ReadAsStringAsync();
             var doc = XDocument.Parse(str);
@@ -41,7 +41,8 @@ namespace GameComparisonAPI
             {
                 var item = Game.ParseItem((XElement)el);
                 await SaveGameToDatabase(item);
-                var statsResponse = await client.GetAsync($"https://gamecomparison.azurewebsites.net/api/GetGameStatistics/{item.Id}?code=rT/jCOHWPKD1H9EUfAsFjbR/XrVxPvqpqB9uRu17hw7RN7fptWVF3Q==");
+                var statsURL = $"{_config["FunctionBaseUrl"]}/GetGameStatistics/{item.Id}?code={_config["FunctionCode"]}";
+                var statsResponse = await client.GetAsync(statsURL);
                 var stats = await statsResponse.Content.ReadAsAsync<Statistics>();
                 if (stats != null)
                 {
