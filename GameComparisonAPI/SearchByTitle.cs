@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace GameComparisonAPI
 {
@@ -40,11 +41,46 @@ namespace GameComparisonAPI
             foreach(var el in doc.Elements().Nodes())
             {
                 var itemId = ((XElement)el).Attribute("id").Value;
-                //var statsResponse = await client.GetAsync($"https://gamecomparison.azurewebsites.net/api/GetGameStatistics/{itemId}?code=rT/jCOHWPKD1H9EUfAsFjbR/XrVxPvqpqB9uRu17hw7RN7fptWVF3Q==");
-                //var stats = await statsResponse.Content.ReadAsAsync<Statistics>();
+                var itemUrl = $"{_config["BGGBaseUrl"]}/thing?id={itemId}";//https://www.boardgamegeek.com/xmlapi2/thing?id=131835
+                var itemResponse = await client.GetAsync(itemUrl);
+                str = await itemResponse.Content.ReadAsStringAsync();
+                doc = XDocument.Parse(str);
+                var itemXML = doc.Descendants("item");
+                var imageUrl = itemXML.Elements("image").FirstOrDefault()?.Value;
+                var name = itemXML.Elements("name").Where(e => e.Attribute("type").Value == "primary").FirstOrDefault()?.Attribute("value").Value;
+                var result = new SearchResults
+                {
+                    Id = int.Parse(itemId),
+                    Title = name,
+                    ImageURL = imageUrl
+                };
+                results.Add(result);
+                await SaveGameToDatabase(result);
             }
 
             return new OkObjectResult(results);
+        }
+
+        private static async Task SaveGameToDatabase(SearchResults game)
+        {
+            var connString = _config["DBConnectionString"];
+
+            using (var conn = new SqlConnection(connString))
+            {
+                var cmdText = @"
+                if exists(select ID from Game where ID = @gameId)
+                    update Game set imageurl = @imageURL where id = @gameId
+                else
+                    insert into Game(Id, Title, imageURL) values(@gameId, @gameTitle, @imageURL)";
+                using (var command = new SqlCommand(cmdText, conn))
+                {
+                    conn.Open();
+                    command.Parameters.Add(new SqlParameter("gameId", game.Id));
+                    command.Parameters.Add(new SqlParameter("gameTitle", game.Title));
+                    command.Parameters.Add(new SqlParameter("imageURL", game.ImageURL));
+                    await command.ExecuteNonQueryAsync();
+                }
+            }
         }
     }
 }
