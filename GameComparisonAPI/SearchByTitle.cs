@@ -32,7 +32,7 @@ namespace GameComparisonAPI
             .AddEnvironmentVariables()
             .Build();
 
-            var response = await client.GetAsync($"{_config["BGGBaseUrl"]}/search?query={title}");
+            var response = await client.GetAsync($"{_config["BGGBaseUrl"]}/search?query={title}?type=boardgame,boardgameaccessoryboardgameexpansion");
 
             var str = await response.Content.ReadAsStringAsync();
             var doc = XDocument.Parse(str);
