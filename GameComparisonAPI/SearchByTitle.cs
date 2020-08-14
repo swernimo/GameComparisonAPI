@@ -32,7 +32,7 @@ namespace GameComparisonAPI
             .AddEnvironmentVariables()
             .Build();
 
-            var response = await client.GetAsync($"{_config["BGGBaseUrl"]}/search?query={title}?type=boardgame,boardgameaccessoryboardgameexpansion");
+            var response = await client.GetAsync($"{_config["BGGBaseUrl"]}/search?query={title}&type=boardgame,boardgameexpansion");
 
             var str = await response.Content.ReadAsStringAsync();
             var doc = XDocument.Parse(str);
@@ -41,7 +41,7 @@ namespace GameComparisonAPI
             foreach(var el in doc.Elements().Nodes())
             {
                 var itemId = ((XElement)el).Attribute("id").Value;
-                var itemUrl = $"{_config["BGGBaseUrl"]}/thing?id={itemId}";//https://www.boardgamegeek.com/xmlapi2/thing?id=131835
+                var itemUrl = $"{_config["BGGBaseUrl"]}/thing?id={itemId}";
                 var itemResponse = await client.GetAsync(itemUrl);
                 str = await itemResponse.Content.ReadAsStringAsync();
                 doc = XDocument.Parse(str);
