@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 using System.Linq;
+using System;
 
 namespace GameComparisonAPI
 {
@@ -21,9 +22,10 @@ namespace GameComparisonAPI
 
         [FunctionName("SearchByTitle")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "SearchByTitle/{title}")] HttpRequest req, string title, 
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "SearchByTitle")] HttpRequest req, 
             ILogger log, ExecutionContext context)
         {
+            var title = req.Query["title"];
             log.LogInformation($"Searching for game with title {title}.");
 
             _config = new ConfigurationBuilder()
@@ -31,6 +33,7 @@ namespace GameComparisonAPI
             .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();
+
 
             var response = await client.GetAsync($"{_config["BGGBaseUrl"]}/search?query={title}&type=boardgame,boardgameexpansion");
 
@@ -48,14 +51,17 @@ namespace GameComparisonAPI
                 var itemXML = doc.Descendants("item");
                 var imageUrl = itemXML.Elements("image").FirstOrDefault()?.Value;
                 var name = itemXML.Elements("name").Where(e => e.Attribute("type").Value == "primary").FirstOrDefault()?.Attribute("value").Value;
-                var result = new SearchResults
+                if (!string.IsNullOrWhiteSpace(name))
                 {
-                    Id = int.Parse(itemId),
-                    Title = name,
-                    ImageURL = imageUrl
-                };
-                results.Add(result);
-                await SaveGameToDatabase(result);
+                    var result = new SearchResults
+                    {
+                        Id = int.Parse(itemId),
+                        Title = name,
+                        ImageURL = imageUrl
+                    };
+                    results.Add(result);
+                    await SaveGameToDatabase(result);
+                }
             }
 
             return new OkObjectResult(results);
@@ -76,8 +82,17 @@ namespace GameComparisonAPI
                 {
                     conn.Open();
                     command.Parameters.Add(new SqlParameter("gameId", game.Id));
-                    command.Parameters.Add(new SqlParameter("gameTitle", game.Title));
-                    command.Parameters.Add(new SqlParameter("imageURL", game.ImageURL));
+                    var imageParameter = new SqlParameter("imageURL", System.Data.SqlDbType.VarChar);
+                    var titleParamter = new SqlParameter("gameTitle", System.Data.SqlDbType.VarChar);
+                    if (string.IsNullOrWhiteSpace(game.ImageURL))
+                    {
+                        imageParameter.Value = DBNull.Value;
+                    } else
+                    {
+                        imageParameter.Value = game.ImageURL;
+                    }
+                    command.Parameters.Add(titleParamter);
+                    command.Parameters.Add(imageParameter);
                     await command.ExecuteNonQueryAsync();
                 }
             }
