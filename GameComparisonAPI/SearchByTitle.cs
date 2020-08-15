@@ -83,7 +83,6 @@ namespace GameComparisonAPI
                     conn.Open();
                     command.Parameters.Add(new SqlParameter("gameId", game.Id));
                     var imageParameter = new SqlParameter("imageURL", System.Data.SqlDbType.VarChar);
-                    var titleParamter = new SqlParameter("gameTitle", System.Data.SqlDbType.VarChar);
                     if (string.IsNullOrWhiteSpace(game.ImageURL))
                     {
                         imageParameter.Value = DBNull.Value;
@@ -91,7 +90,7 @@ namespace GameComparisonAPI
                     {
                         imageParameter.Value = game.ImageURL;
                     }
-                    command.Parameters.Add(titleParamter);
+                    command.Parameters.Add(new SqlParameter("gameTitle", game.Title));
                     command.Parameters.Add(imageParameter);
                     await command.ExecuteNonQueryAsync();
                 }
