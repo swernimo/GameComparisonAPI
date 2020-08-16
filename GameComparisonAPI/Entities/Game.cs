@@ -6,7 +6,6 @@ namespace GameComparisonAPI.Entities
     {
         public string ObjectType { get; set; }
         public int Id { get; set; }
-        public string SubType { get; set; }
         public string Name { get; set; }
         public int YearPublished { get; set; }
         public string ImageUrl { get; set; }
@@ -19,9 +18,8 @@ namespace GameComparisonAPI.Entities
         {
             var item = new Game
             {
-                ObjectType = el.Attribute("objecttype").Value,
+                ObjectType = el.Attribute("subtype").Value,
                 Id = int.Parse(el.Attribute("objectid").Value),
-                SubType = el.Attribute("subtype").Value,
                 Name = el.Element("name").Value,
                 YearPublished = int.Parse(el.Element("yearpublished").Value),
                 ImageUrl = el.Element("image").Value,
