@@ -56,14 +56,22 @@ namespace GameComparisonAPI
                     SuggestedPlayerAge = GetSuggesstedPlayerAge(itemXML),
                     RecommendedPlayers = GetRecommendedPlayerCount(itemXML)
                 };
-                var game = new Game
+                var game = new
                 {
                     ObjectType = itemType,
                     Id = itemID,
                     Name = name,
                     ImageUrl = itemXML.Element("image").Value,
                     YearPublished = int.Parse(year),
-                    Statistics = stats
+                    stats.MinPlayers,
+                    stats.MaxPlayers,
+                    stats.PlayerAge,
+                    stats.PlayingTime,
+                    stats.Rating,
+                    stats.RecommendedPlayers,
+                    stats.SuggestedPlayerAge,
+                    stats.Description,
+                    stats.Complexity
                 };
 
                 return new OkObjectResult(game);
