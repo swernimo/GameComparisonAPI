@@ -9,7 +9,7 @@ using GameComparisonAPI.Entities;
 using System.Collections.Generic;
 using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
-using System.Data.SqlClient;
+using System;
 using Microsoft.Azure.Documents.Client;
 
 namespace GameComparisonAPI
@@ -57,28 +57,6 @@ namespace GameComparisonAPI
             return new OkObjectResult(collection);
         }
 
-        //private static async Task SaveGameToDatabase(Game game)
-        //{
-        //    var connString = _config["DBConnectionString"];
-
-        //    using (var conn = new SqlConnection(connString))
-        //    {
-        //        var cmdText = @"
-        //        if exists(select ID from Game where ID = @gameId)
-        //            update Game set imageurl = @imageURL where id = @gameId
-        //        else
-        //            insert into Game(Id, Title, imageURL) values(@gameId, @gameTitle, @imageURL)";
-        //        using (var command = new SqlCommand(cmdText, conn))
-        //        {
-        //            conn.Open();
-        //            command.Parameters.Add(new SqlParameter("gameId", game.Id));
-        //            command.Parameters.Add(new SqlParameter("gameTitle", game.Name));
-        //            command.Parameters.Add(new SqlParameter("imageURL", game.ImageUrl));
-        //            await command.ExecuteNonQueryAsync();
-        //        }
-        //    }
-        //}
-
         private static async Task SaveCollectionToComos(string username, List<Game> collection)
         {
             var url = _config["CosmosURL"];
@@ -88,13 +66,9 @@ namespace GameComparisonAPI
             await documentClient.CreateDocumentAsync(documentUri, new
             {
                 username,
+                lastUpdatedUTC = DateTime.Now.ToUniversalTime(),
                 collection
             });
-            //await documentClient.UpsertDocumentAsync(documentUri, new
-            //{
-            //    username,
-            //    collection
-            //});
         }
     }
 }
