@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
 using System.Data.SqlClient;
+using Microsoft.Azure.Documents.Client;
 
 namespace GameComparisonAPI
 {
@@ -17,6 +18,8 @@ namespace GameComparisonAPI
     {
         static readonly HttpClient client = new HttpClient();
         private static IConfigurationRoot _config;
+        private const string DatabaseId = "GameComparison";
+        private const string ContainerId = "GameCollection";
 
         [FunctionName("GetCollection")]
         public static async Task<IActionResult> Run(
@@ -40,8 +43,7 @@ namespace GameComparisonAPI
             foreach(var el in doc.Elements().Nodes())
             {
                 var item = Game.ParseItem((XElement)el);
-                await SaveGameToDatabase(item);
-                var statsURL = $"{_config["FunctionBaseUrl"]}/GetGameStatistics/{item.Id}?code={_config["FunctionCode"]}";
+                var statsURL = $"{_config["FunctionBaseUrl"]}/GetGameStatistics/{item.Id}?code=FMPJjDq3mqMluiSk9mtSoZlJrmHJXAtwMWZ67Vc81OnGSwNmRJIHIw==";
                 var statsResponse = await client.GetAsync(statsURL);
                 var stats = await statsResponse.Content.ReadAsAsync<Statistics>();
                 if (stats != null)
@@ -50,30 +52,49 @@ namespace GameComparisonAPI
                 }
                 collection.Add(item);
             }
+            await SaveCollectionToComos(username, collection);
             log.LogInformation($"Successfully got collection for user {username}");
             return new OkObjectResult(collection);
         }
 
-        private static async Task SaveGameToDatabase(Game game)
-        {
-            var connString = _config["DBConnectionString"];
+        //private static async Task SaveGameToDatabase(Game game)
+        //{
+        //    var connString = _config["DBConnectionString"];
 
-            using (var conn = new SqlConnection(connString))
+        //    using (var conn = new SqlConnection(connString))
+        //    {
+        //        var cmdText = @"
+        //        if exists(select ID from Game where ID = @gameId)
+        //            update Game set imageurl = @imageURL where id = @gameId
+        //        else
+        //            insert into Game(Id, Title, imageURL) values(@gameId, @gameTitle, @imageURL)";
+        //        using (var command = new SqlCommand(cmdText, conn))
+        //        {
+        //            conn.Open();
+        //            command.Parameters.Add(new SqlParameter("gameId", game.Id));
+        //            command.Parameters.Add(new SqlParameter("gameTitle", game.Name));
+        //            command.Parameters.Add(new SqlParameter("imageURL", game.ImageUrl));
+        //            await command.ExecuteNonQueryAsync();
+        //        }
+        //    }
+        //}
+
+        private static async Task SaveCollectionToComos(string username, List<Game> collection)
+        {
+            var url = _config["CosmosURL"];
+            var authKey = _config["CosmosAuthorizationKey"];
+            var documentClient = new DocumentClient(new System.Uri(url), authKey);
+            var documentUri = UriFactory.CreateDocumentCollectionUri("GameComparison", "GameCollection");
+            await documentClient.CreateDocumentAsync(documentUri, new
             {
-                var cmdText = @"
-                if exists(select ID from Game where ID = @gameId)
-                    update Game set imageurl = @imageURL where id = @gameId
-                else
-                    insert into Game(Id, Title, imageURL) values(@gameId, @gameTitle, @imageURL)";
-                using (var command = new SqlCommand(cmdText, conn))
-                {
-                    conn.Open();
-                    command.Parameters.Add(new SqlParameter("gameId", game.Id));
-                    command.Parameters.Add(new SqlParameter("gameTitle", game.Name));
-                    command.Parameters.Add(new SqlParameter("imageURL", game.ImageUrl));
-                    await command.ExecuteNonQueryAsync();
-                }
-            }
+                username,
+                collection
+            });
+            //await documentClient.UpsertDocumentAsync(documentUri, new
+            //{
+            //    username,
+            //    collection
+            //});
         }
     }
 }

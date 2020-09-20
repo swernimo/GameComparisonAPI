@@ -4,9 +4,10 @@
     <AzureFunctionsVersion>v3</AzureFunctionsVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.3" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.7" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.9" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.8" />
+    <PackageReference Include="Microsoft.Azure.DocumentDB.Core" Version="2.11.6" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="obj\Release\netcoreapp3.1\PubTmp\Out\bin\Microsoft.AspNetCore.Mvc.Abstractions.dll" />
