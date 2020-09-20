@@ -75,7 +75,7 @@ namespace GameComparisonAPI
                     stats.Description,
                     stats.Complexity
                 };
-                await SaveGameToComos(game, itemID);
+                await SaveGameToComos(game);
                 return new OkObjectResult(game);
             }
 
