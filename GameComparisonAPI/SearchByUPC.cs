@@ -1,4 +1,4 @@
-using System.Data.SqlClient;
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using GameComparisonAPI.Entities;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents;
 
 namespace GameComparisonAPI
 {
@@ -28,29 +30,26 @@ namespace GameComparisonAPI
             .Build();
             var infoList = new List<SearchResults>();
 
-            using (var connection = new SqlConnection(_config["DBConnectionString"]))
+            var url = _config["CosmosURL"];
+            var authKey = _config["CosmosAuthorizationKey"];
+            var documentClient = new DocumentClient(new Uri(url), authKey);
+            var documentUri = UriFactory.CreateDocumentCollectionUri("GameComparison", "SearchResults");
+            var query = documentClient.CreateDocumentQuery(documentUri, new SqlQuerySpec($"SELECT * FROM c where c.search.Barcode = \"{code}\""), new FeedOptions()
             {
-                connection.Open();
-                using (var command = new SqlCommand("select Id, Title, imageUrl from Game where barcode = @barcode", connection))
+                EnableCrossPartitionQuery = true
+            });
+            foreach (var document in query)
+            {
+                var search = new SearchResults
                 {
-                    command.Parameters.Add(new SqlParameter("barcode", code));
-                    var result = command.ExecuteReader();
-                    while(result.Read())
-                    {
-                        var id = int.Parse(result["Id"].ToString());
-                        var title = result["Title"].ToString();
-                        var imageUrl = result["imageUrl"].ToString();
-                        infoList.Add(new SearchResults
-                        {
-                            Id = id,
-                            Title = title,
-                           ImageURL = imageUrl
-                        });
-                    }
+                    Id = document.search.Id,
+                    Title = document.search.Title,
+                    Barcode = code,
+                    ImageURL = document.search.ImageURL
+                };
 
-                }
+                infoList.Add(search);
             }
-
 
             return new OkObjectResult(infoList);
         }

@@ -5,11 +5,12 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
-using GameComparisonAPI.Entities;
-using System.Collections.Generic;
-using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
-using System.Data.SqlClient;
+using System;
+using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents;
+using GameComparisonAPI.Entities;
+
 namespace GameComparisonAPI
 {
     public static class AddBarcode
@@ -29,18 +30,28 @@ namespace GameComparisonAPI
             .AddEnvironmentVariables()
             .Build();
 
-            var connString = _config["DBConnectionString"];
-
-            using (var conn = new SqlConnection(connString))
+            var url = _config["CosmosURL"];
+            var authKey = _config["CosmosAuthorizationKey"];
+            var documentClient = new DocumentClient(new Uri(url), authKey);
+            var documentUri = UriFactory.CreateDocumentCollectionUri("GameComparison", "SearchResults");
+            var query = documentClient.CreateDocumentQuery(documentUri, new SqlQuerySpec($"SELECT * FROM c where c.search.Id = {gameId}"), new FeedOptions()
             {
-                var cmdText = @"update Game set barcode = @barcode where Id = @gameId";
-                using (var command = new SqlCommand(cmdText, conn))
+                EnableCrossPartitionQuery = true
+            });
+            foreach(var document in query)
+            {
+                var search = new SearchResults
                 {
-                    conn.Open();
-                    command.Parameters.Add(new SqlParameter("gameId", gameId));
-                    command.Parameters.Add(new SqlParameter("barcode", barcode));
-                    await command.ExecuteNonQueryAsync();
-                }
+                    Id = document.search.Id,
+                    Title = document.search.Title,
+                    Barcode = barcode,
+                    ImageURL = document.search.ImageURL
+                };
+
+                document.lastUpdatedUTC = DateTime.UtcNow;
+                document.search = search;
+
+                await documentClient.UpsertDocumentAsync(documentUri, document);
             }
 
             return new OkObjectResult("");

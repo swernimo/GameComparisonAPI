@@ -18,8 +18,6 @@ namespace GameComparisonAPI
     {
         static readonly HttpClient client = new HttpClient();
         private static IConfigurationRoot _config;
-        private const string DatabaseId = "GameComparison";
-        private const string ContainerId = "GameCollection";
 
         [FunctionName("GetCollection")]
         public static async Task<IActionResult> Run(
@@ -34,7 +32,11 @@ namespace GameComparisonAPI
             .Build();
 
             var collection = new List<Game>();
-
+            /*
+             check if collection is already in DB & less than week old
+                if yes return saved collection
+                if no query collection from BGG
+             */
             var response = await client.GetAsync($"{_config["BGGBaseUrl"]}/collection/?username={username}&subtype=boardgame");
 
             var str = await response.Content.ReadAsStringAsync();
@@ -43,7 +45,7 @@ namespace GameComparisonAPI
             foreach(var el in doc.Elements().Nodes())
             {
                 var item = Game.ParseItem((XElement)el);
-                var statsURL = $"{_config["FunctionBaseUrl"]}/GetGameStatistics/{item.Id}?code=FMPJjDq3mqMluiSk9mtSoZlJrmHJXAtwMWZ67Vc81OnGSwNmRJIHIw==";
+                var statsURL = $"{_config["FunctionBaseUrl"]}/GetGameStatistics/{item.Id}?code={_config["FunctionKey"]}";
                 var statsResponse = await client.GetAsync(statsURL);
                 var stats = await statsResponse.Content.ReadAsAsync<Statistics>();
                 if (stats != null)
@@ -61,7 +63,7 @@ namespace GameComparisonAPI
         {
             var url = _config["CosmosURL"];
             var authKey = _config["CosmosAuthorizationKey"];
-            var documentClient = new DocumentClient(new System.Uri(url), authKey);
+            var documentClient = new DocumentClient(new Uri(url), authKey);
             var documentUri = UriFactory.CreateDocumentCollectionUri("GameComparison", "GameCollection");
             await documentClient.CreateDocumentAsync(documentUri, new
             {

@@ -9,6 +9,8 @@ using Microsoft.Extensions.Configuration;
 using System.Linq;
 using System.Xml.Linq;
 using GameComparisonAPI.Entities;
+using System;
+using Microsoft.Azure.Documents.Client;
 
 namespace GameComparisonAPI
 {
@@ -59,7 +61,7 @@ namespace GameComparisonAPI
                 var game = new
                 {
                     ObjectType = itemType,
-                    Id = itemID,
+                    id = itemID,
                     Name = name,
                     ImageUrl = itemXML.Element("image").Value,
                     YearPublished = int.Parse(year),
@@ -73,7 +75,7 @@ namespace GameComparisonAPI
                     stats.Description,
                     stats.Complexity
                 };
-
+                await SaveGameToComos(game, itemID);
                 return new OkObjectResult(game);
             }
 
@@ -128,6 +130,19 @@ namespace GameComparisonAPI
                 }
             }
             return 0;
+        }
+
+        private static async Task SaveGameToComos<T>(T game)
+        {
+            var url = _config["CosmosURL"];
+            var authKey = _config["CosmosAuthorizationKey"];
+            var documentClient = new DocumentClient(new Uri(url), authKey);
+            var documentUri = UriFactory.CreateDocumentCollectionUri("GameComparison", "Game");
+            await documentClient.CreateDocumentAsync(documentUri, new
+            {
+                lastUpdatedUTC = DateTime.Now.ToUniversalTime(),
+                game
+            });
         }
     }
 }

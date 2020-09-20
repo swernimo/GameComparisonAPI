@@ -8,7 +8,7 @@ using GameComparisonAPI.Entities;
 using System.Collections.Generic;
 using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
-using System.Data.SqlClient;
+using Microsoft.Azure.Documents.Client;
 using System.Threading.Tasks;
 using System.Linq;
 using System;
@@ -60,41 +60,24 @@ namespace GameComparisonAPI
                         ImageURL = imageUrl
                     };
                     results.Add(result);
-                    await SaveGameToDatabase(result);
+                    await SaveSearchResultToComos(result);
                 }
             }
 
             return new OkObjectResult(results);
         }
 
-        private static async Task SaveGameToDatabase(SearchResults game)
+        private static async Task SaveSearchResultToComos(SearchResults search)
         {
-            var connString = _config["DBConnectionString"];
-
-            using (var conn = new SqlConnection(connString))
+            var url = _config["CosmosURL"];
+            var authKey = _config["CosmosAuthorizationKey"];
+            var documentClient = new DocumentClient(new Uri(url), authKey);
+            var documentUri = UriFactory.CreateDocumentCollectionUri("GameComparison", "SearchResults");
+            await documentClient.CreateDocumentAsync(documentUri, new
             {
-                var cmdText = @"
-                if exists(select ID from Game where ID = @gameId)
-                    update Game set imageurl = @imageURL where id = @gameId
-                else
-                    insert into Game(Id, Title, imageURL) values(@gameId, @gameTitle, @imageURL)";
-                using (var command = new SqlCommand(cmdText, conn))
-                {
-                    conn.Open();
-                    command.Parameters.Add(new SqlParameter("gameId", game.Id));
-                    var imageParameter = new SqlParameter("imageURL", System.Data.SqlDbType.VarChar);
-                    if (string.IsNullOrWhiteSpace(game.ImageURL))
-                    {
-                        imageParameter.Value = DBNull.Value;
-                    } else
-                    {
-                        imageParameter.Value = game.ImageURL;
-                    }
-                    command.Parameters.Add(new SqlParameter("gameTitle", game.Title));
-                    command.Parameters.Add(imageParameter);
-                    await command.ExecuteNonQueryAsync();
-                }
-            }
+                lastUpdatedUTC = DateTime.Now.ToUniversalTime(),
+                search
+            });
         }
     }
 }

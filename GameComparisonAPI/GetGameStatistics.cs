@@ -21,7 +21,7 @@ namespace GameComparisonAPI
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "GetGameStatistics/{id}")] HttpRequest req, int id,
             ILogger log)
         {
-            log.LogInformation($"Getting statics for game {id}");
+            log.LogInformation($"Getting Statistics for game {id}");
             var url = $"http://www.boardgamegeek.com/xmlapi/boardgame/{id}?stats=1";
             var response = await client.GetAsync(url);
 
