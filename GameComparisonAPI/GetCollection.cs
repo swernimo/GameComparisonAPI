@@ -30,22 +30,25 @@ namespace GameComparisonAPI
             .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();
-
+            log.LogInformation("Got config");
             var collection = new List<Game>();
             /*
              check if collection is already in DB & less than week old
                 if yes return saved collection
                 if no query collection from BGG
              */
-            var response = await client.GetAsync($"{_config["BGGBaseUrl"]}/collection/?username={username}&subtype=boardgame");
+            var url = $"{_config["BGGBaseUrl"]}/collection/?username={username}&subtype=boardgame";
+            log.LogInformation($"attempting to get collection from {url}");
+            var response = await client.GetAsync(url);
 
             var str = await response.Content.ReadAsStringAsync();
             var doc = XDocument.Parse(str);
-
+            log.LogInformation("Got response");
             foreach(var el in doc.Elements().Nodes())
             {
                 var item = Game.ParseItem((XElement)el);
                 var statsURL = $"{_config["FunctionBaseUrl"]}/GetGameStatistics/{item.Id}?code={_config["FunctionKey"]}";
+                log.LogInformation($"trying to get stats for game {item.Id} and url {statsURL}");
                 var statsResponse = await client.GetAsync(statsURL);
                 var stats = await statsResponse.Content.ReadAsAsync<Statistics>();
                 if (stats != null)
