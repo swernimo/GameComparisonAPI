@@ -12,6 +12,7 @@ using Microsoft.Azure.Documents.Client;
 using System.Threading.Tasks;
 using System.Linq;
 using System;
+using System.Text;
 
 namespace GameComparisonAPI
 {
@@ -27,6 +28,7 @@ namespace GameComparisonAPI
         {
             var title = req.Query["title"];
             log.LogInformation($"Searching for game with title {title}.");
+            var header = req.Headers["DeviceInfo"];
 
             _config = new ConfigurationBuilder()
             .SetBasePath(context.FunctionAppDirectory)
@@ -34,6 +36,12 @@ namespace GameComparisonAPI
             .AddEnvironmentVariables()
             .Build();
 
+            if (!string.IsNullOrWhiteSpace(header))
+            {
+                byte[] data = Convert.FromBase64String(header);
+                var decoded = ASCIIEncoding.ASCII.GetString(data);
+                await SaveSearchHistoryToCosmos(decoded, title);
+            }
 
             var response = await client.GetAsync($"{_config["BGGBaseUrl"]}/search?query={title}&type=boardgame,boardgameexpansion");
 
@@ -77,6 +85,38 @@ namespace GameComparisonAPI
             {
                 lastUpdatedUTC = DateTime.Now.ToUniversalTime(),
                 search
+            });
+        }
+
+        private static async Task SaveSearchHistoryToCosmos(string deviceHeader, string title)
+        {
+            var url = _config["CosmosURL"];
+            var authKey = _config["CosmosAuthorizationKey"];
+            var documentClient = new DocumentClient(new Uri(url), authKey);
+            var documentUri = UriFactory.CreateDocumentCollectionUri("GameComparison", "SearchHistory");
+            var dict = deviceHeader.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
+               .Select(part => part.Split(':'))
+               .ToDictionary(split => split[0], split => split[1]);
+            var uuid = dict["UUID"];
+            var appVersion = dict["AppVersion"];
+            var platform = dict["Platform"];
+            var osVersion = dict["DeviceVersion"];
+            var model = dict["DeviceModel"];
+            await documentClient.CreateDocumentAsync(documentUri, new
+            {
+                uuid,
+                lastUpdatedUTC = DateTime.Now.ToUniversalTime(),
+                device = new
+                {
+                    appVersion,
+                    platform,
+                    uuid,
+                    osVersion,
+                    model
+                },
+                searchTerms = new {
+                    title
+                }
             });
         }
     }
