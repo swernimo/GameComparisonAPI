@@ -63,7 +63,7 @@ namespace GameComparisonAPI
             var timestamp = DateTime.UtcNow;
             await documentClient.CreateDocumentAsync(documentUri, new
             {
-                payload.Username,
+                username = payload.Username,
                 dateAccepted = timestamp,
                 lastUpdatedUTC = timestamp,
                 device = new
