@@ -27,7 +27,7 @@ namespace GameComparisonAPI
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "SearchByTitle")] HttpRequest req, 
             ILogger log, ExecutionContext context)
         {
-            var title = req.Query["title"];
+            var title = req.Query["title"].First();
             log.LogInformation($"Searching for game with title {title}.");
             var header = req.Headers["DeviceInfo"];
 
@@ -43,7 +43,8 @@ namespace GameComparisonAPI
                 var decoded = ASCIIEncoding.ASCII.GetString(data);
                 await SaveSearchHistoryToCosmos(decoded, title);
             }
-            var url = $"{_config["BGGBaseUrl"]}/search?query={title}&type=boardgame,boardgameexpansion";
+            title = title.Replace(' ', '+');
+            var url = $"{_config["BGGBaseUrl"]}/search?query={title}&type=boardgame,boardgameexpansion&extact=0";
             log.LogInformation($"trying to search board game geek with url {url}");
             var response = await client.GetAsync(url);
 
@@ -87,7 +88,7 @@ namespace GameComparisonAPI
             {
                 EnableCrossPartitionQuery = true
             });
-            if (!query.Any())
+            if (!query.ToList().Any())
             {
                 await documentClient.CreateDocumentAsync(documentUri, new
                 {
