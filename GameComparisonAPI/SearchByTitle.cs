@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System;
 using System.Text;
+using Microsoft.Azure.Documents;
 
 namespace GameComparisonAPI
 {
@@ -42,8 +43,9 @@ namespace GameComparisonAPI
                 var decoded = ASCIIEncoding.ASCII.GetString(data);
                 await SaveSearchHistoryToCosmos(decoded, title);
             }
-
-            var response = await client.GetAsync($"{_config["BGGBaseUrl"]}/search?query={title}&type=boardgame,boardgameexpansion");
+            var url = $"{_config["BGGBaseUrl"]}/search?query={title}&type=boardgame,boardgameexpansion";
+            log.LogInformation($"trying to search board game geek with url {url}");
+            var response = await client.GetAsync(url);
 
             var str = await response.Content.ReadAsStringAsync();
             var doc = XDocument.Parse(str);
@@ -71,7 +73,7 @@ namespace GameComparisonAPI
                     await SaveSearchResultToComos(result);
                 }
             }
-
+            log.LogInformation($"found {results.Count()} results when searching for {title}");
             return new OkObjectResult(results);
         }
 
@@ -81,11 +83,18 @@ namespace GameComparisonAPI
             var authKey = _config["CosmosAuthorizationKey"];
             var documentClient = new DocumentClient(new Uri(url), authKey);
             var documentUri = UriFactory.CreateDocumentCollectionUri("GameComparison", "SearchResults");
-            await documentClient.CreateDocumentAsync(documentUri, new
+            var query = documentClient.CreateDocumentQuery(documentUri, new SqlQuerySpec($"SELECT * FROM c where c.search.Id = {search.Id}"), new FeedOptions()
             {
-                lastUpdatedUTC = DateTime.Now.ToUniversalTime(),
-                search
+                EnableCrossPartitionQuery = true
             });
+            if (!query.Any())
+            {
+                await documentClient.CreateDocumentAsync(documentUri, new
+                {
+                    lastUpdatedUTC = DateTime.Now.ToUniversalTime(),
+                    search
+                });
+            }
         }
 
         private static async Task SaveSearchHistoryToCosmos(string deviceHeader, string title)
